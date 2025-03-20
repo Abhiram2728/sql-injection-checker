@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Injection Vulnerability Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f3f3;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            overflow: hidden;
+        }
+        .container:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #007bff;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+        form {
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease-in-out;
+        }
+        input[type="text"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .safe {
+            color: green;
+        }
+        .vulnerable {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SQL Injection Vulnerability Checker</h1>
+        <form id="urlForm" onsubmit="checkVulnerability(event)">
+            <input type="text" id="urlInput" placeholder="Enter website URL">
+            <input type="submit" value="Check Vulnerability">
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function checkVulnerability(event) {
+            event.preventDefault();
+            var url = document.getElementById('urlInput').value;
+            if (url.trim() === '') {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            // Create a new XMLHttpRequest object
+            var xhr = new XMLHttpRequest();
+
+            // Configure the request
+            xhr.open('POST', '/check_vulnerability', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            // Set up callback function when the request is complete
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    displayResults(response);
+                } else {
+                    alert('Error: ' + xhr.statusText);
+                }
+            };
+
+            // Set up callback function for errors
+            xhr.onerror = function() {
+                alert('Request failed');
+            };
+
+            // Send the request with the URL data
+            xhr.send(JSON.stringify({ url: url }));
+            
+            // Display a loading message
+            document.getElementById('result').innerHTML = 'Checking vulnerability for ' + url + '...<br>Please wait...';
+        }
+
+        function displayResults(response) {
+            var resultContainer = document.getElementById('result');
+            resultContainer.innerHTML = ''; // Clear previous results
+
+            if (response.error) {
+                resultContainer.innerHTML = `<div style="color: red;">Error: ${response.error}</div>`;
+            } else {
+                var resultsHtml = `<h2>Vulnerability Check Results for: ${response.url}</h2><ul>`;
+                response.results.forEach(function(fieldResult) {
+                    resultsHtml += `<li><strong>Field: ${fieldResult.field}</strong><ul>`;
+                    fieldResult.tests.forEach(function(test) {
+                        resultsHtml += `<li><strong>Payload:</strong> ${test.payload} - <strong>Result:</strong> ${test.result}</li>`;
+                    });
+                    resultsHtml += `</ul></li>`;
+                });
+                resultsHtml += '</ul>';
+                
+                // Display the final result (vulnerable or safe)
+                var finalResultClass = response.final_result.includes('vulnerable') ? 'vulnerable' : 'safe';
+                resultsHtml += `<h3 class="${finalResultClass}">${response.final_result}</h3>`;
+                resultContainer.innerHTML = resultsHtml;
+            }
+        }
+    </script>
+</body>
+</html>
+
